@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" >
+  <title>Simulation Offre Mieux-Disante</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f9f9f9;
+      padding: 20px;
+    }
+
+    h2 {
+      color: #007BFF;
+      text-align: center;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    label {
+      display: block;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+
+    input, select {
+      padding: 8px;
+      width: 100%;
+      margin-top: 5px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+
+    .concurrent {
+      border: 1px solid #ddd;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 5px;
+      position: relative;
+      background: #f8f9fa;
+    }
+
+    .concurrent-title {
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    .supprimer-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: transparent;
+      border: none;
+      font-size: 18px;
+      cursor: pointer;
+      color: red;
+    }
+
+    .button-group {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 15px;
+    }
+
+    button {
+      padding: 8px 12px;
+      border: none;
+      border-radius: 5px;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .btn-ajouter {
+      color: #007BFF;
+      border: 1px solid #007BFF;
+      background: #fff;
+    }
+
+    .btn-calculer {
+      background: #007BFF;
+      color: white;
+    }
+
+    .btn-reset {
+      background: #6c757d;
+      color: white;
+    }
+
+    #result {
+      margin-top: 20px;
+    }
+
+    .statut {
+      font-weight: bold;
+      margin-top: 5px;
+    }
+
+    .statut.valide {
+      color: green;
+    }
+
+    .statut.ecarte {
+      color: red;
+    }
+
+    .element-faible {
+      opacity: 0.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Logo en entête centré -->
+    <div style="text-align:center; margin-bottom: 20px;">
+      <img src="https://www.communeoujda.ma/sites/default/files/logo/COMMUNE-OUJDA-LOGO-01.png" alt="Logo Commune Oujda" style="max-height: 80px;">
+    </div>
+
+    <h2>Calcul du Prix de Référence et Offre Mieux-Disante</h2>
+
+    <label for="categorie">Catégorie d'appel d'offre :</label>
+    <select id="categorie" onchange="reverifierTous()">
+      <option value="travaux">Travaux </option>
+      <option value="autres">Autres (Services, Fournitures) </option>
+    </select>
+    <p class="element-faible">Travaux = ± 25% / Autres ( Services , Fournitures ) = ± 20% </p>
+
+    <label for="estimation">Estimation :</label>
+    <input type="number" id="estimation" placeholder="Ex: 100000" oninput="reverifierTous()" />
+
+    <hr>
+
+    <h3>Concurrents</h3>
+    <div id="concurrents"></div>
+
+    <div class="button-group">
+      <button class="btn-ajouter" onclick="ajouterConcurrent()">➕ Ajouter</button>
+      <button class="btn-calculer" onclick="calculer()">📊 Calculer & Afficher le Classement</button>
+      <button class="btn-reset" onclick="resetForm()">🔄 Reset</button>
+    </div>
+
+    <div id="result"></div>
+  </div>
+
+  <script>
+    let index = 0;
+
+    function ajouterConcurrent() {
+      const div = document.createElement("div");
+      div.className = "concurrent";
+      div.id = "concurrent_" + index;
+
+      div.innerHTML = `
+        <button class="supprimer-btn" onclick="supprimer(${index})">🗑</button>
+        <div class="concurrent-title">Concurrent ${index + 1}</div>
+        <label>Nom :</label>
+        <input type="text" id="nom_${index}" placeholder="Concurrent ${index + 1}" />
+        <label>Offre de Prix :</label>
+        <input type="number" id="offre_${index}" placeholder="Ex: 95000" oninput="verifierOffre(${index})" />
+        <div class="statut" id="statut_${index}"></div>
+      `;
+
+      document.getElementById("concurrents").appendChild(div);
+      index++;
+    }
+
+    function supprimer(i) {
+      const el = document.getElementById("concurrent_" + i);
+      if (el) el.remove();
+    }
+
+    function verifierOffre(i) {
+      const estimation = parseFloat(document.getElementById("estimation").value);
+      const type = document.getElementById("categorie").value;
+      const offreInput = document.getElementById("offre_" + i);
+      const statutDiv = document.getElementById("statut_" + i);
+
+      if (!offreInput || !statutDiv || isNaN(estimation) || estimation <= 0) return;
+
+      const offreVal = parseFloat(offreInput.value);
+      if (isNaN(offreVal)) {
+        statutDiv.textContent = "";
+        statutDiv.className = "statut";
+        return;
+      }
+
+      const marge = type === "travaux" ? 0.25 : 0.20;
+      const borneMin = estimation * (1 - marge);
+      const borneMax = estimation * (1 + marge);
+
+      if (offreVal >= borneMin && offreVal <= borneMax) {
+        statutDiv.textContent = "Valide";
+        statutDiv.className = "statut valide";
+      } else {
+        statutDiv.textContent = "Écarté";
+        statutDiv.className = "statut ecarte";
+      }
+    }
+
+    function reverifierTous() {
+      for (let i = 0; i < index; i++) {
+        verifierOffre(i);
+      }
+    }
+
+    function calculer() {
+      const estimation = parseFloat(document.getElementById("estimation").value);
+      const type = document.getElementById("categorie").value;
+      if (isNaN(estimation) || estimation <= 0) {
+        alert("Veuillez entrer une estimation valide.");
+        return;
+      }
+
+      const marge = type === "travaux" ? 0.25 : 0.20;
+      const borneMin = estimation * (1 - marge);
+      const borneMax = estimation * (1 + marge);
+
+      const concurrents = [];
+      for (let i = 0; i < index; i++) {
+        const nom = document.getElementById("nom_" + i);
+        const offre = document.getElementById("offre_" + i);
+        if (nom && offre) {
+          const offreVal = parseFloat(offre.value);
+          if (!isNaN(offreVal)) {
+            concurrents.push({ nom: nom.value || `Concurrent ${i + 1}`, offre: offreVal });
+          }
+        }
+      }
+
+      const admissibles = concurrents.filter(c => c.offre >= borneMin && c.offre <= borneMax);
+      admissibles.sort((a, b) => a.offre - b.offre);
+
+      if (admissibles.length === 0) {
+        document.getElementById("result").innerHTML = `<strong>Aucune offre admissible.</strong>`;
+        return;
+      }
+
+      // Calcul de la moyenne des offres admissibles
+      const somme = admissibles.reduce((sum, c) => sum + c.offre, 0);
+      const moyenneConcurrents = somme / admissibles.length;
+
+      // Calcul du prix de référence = (moyenne des concurrents + estimation) / 2
+      const prixReference = (moyenneConcurrents + estimation) / 2;
+
+      let html = `<div style="background:#f1f9fc;border-radius:5px;padding:15px;">
+        <h3 style="color:#0d6efd;">Classement des Concurrents Valides</h3>
+        <p><strong>Prix de référence :</strong> ${prixReference.toFixed(2)}</p>
+        <table style="width:100%;border-collapse:collapse;">
+          <thead>
+            <tr style="background:#e0f5fc;">
+              <th style="border:1px solid #ccc;padding:8px;">Classement</th>
+              <th style="border:1px solid #ccc;padding:8px;">Concurrent</th>
+              <th style="border:1px solid #ccc;padding:8px;">Offre de Prix</th>
+              <th style="border:1px solid #ccc;padding:8px;">Écart (%)</th>
+            </tr>
+          </thead>
+          <tbody>`;
+
+      admissibles.forEach((c, i) => {
+        const pourcentage = ((c.offre - prixReference) / prixReference) * 100;
+        const ligneStyle = i === 0 ? 'style="background:#d8f0e1;"' : '';
+        html += `<tr ${ligneStyle}>
+          <td style="border:1px solid #ccc;padding:8px;">${i + 1}</td>
+          <td style="border:1px solid #ccc;padding:8px;">${c.nom}</td>
+          <td style="border:1px solid #ccc;padding:8px;">${c.offre}</td>
+          <td style="border:1px solid #ccc;padding:8px;">${pourcentage.toFixed(2)}%</td>
+        </tr>`;
+      });
+
+      html += `</tbody></table></div>`;
+
+      // Ajout du tableau des offres écartées
+      const ecartes = concurrents.filter(c => c.offre < borneMin || c.offre > borneMax);
+      if (ecartes.length > 0) {
+        html += `<div style="background:#ffecec;border-radius:5px;padding:15px;margin-top:20px;">
+          <h3 style="color:#dc3545;">Concurrents Écartés</h3>
+          <table style="width:100%;border-collapse:collapse;">
+            <thead>
+              <tr style="background:#f8d7da;">
+                <th style="border:1px solid #ccc;padding:8px;">Concurrent</th>
+                <th style="border:1px solid #ccc;padding:8px;">Offre de Prix</th>
+                <th style="border:1px solid #ccc;padding:8px;">Raison</th>
+              </tr>
+            </thead>
+            <tbody>`;
+
+        ecartes.forEach(c => {
+          html += `<tr>
+            <td style="border:1px solid #ccc;padding:8px;">${c.nom}</td>
+            <td style="border:1px solid #ccc;padding:8px;">${c.offre}</td>
+            <td style="border:1px solid #ccc;padding:8px;">Hors intervalle</td>
+          </tr>`;
+        });
+
+        html += `</tbody></table></div>`;
+      }
+
+      document.getElementById("result").innerHTML = html;
+    }
+
+    function resetForm() {
+      document.getElementById("estimation").value = "";
+      document.getElementById("concurrents").innerHTML = "";
+      document.getElementById("result").innerHTML = "";
+      index = 0;
+    }
+
+    ajouterConcurrent();
+  </script>
+</body>
+</html>
